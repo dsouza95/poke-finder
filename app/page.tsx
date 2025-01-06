@@ -3,11 +3,23 @@
 import { InferenceEngine, CVImage } from "inferencejs";
 import { useEffect, useRef, useState, useMemo } from "react";
 
+type Prediction = {
+  confidence: number;
+  bbox: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  class: string;
+  color: string;
+};
+
 function App() {
   const inferEngine = useMemo(() => {
     return new InferenceEngine();
   }, []);
-  const [modelWorkerId, setModelWorkerId] = useState(null);
+  const [modelWorkerId, setModelWorkerId] = useState("");
   const [modelLoading, setModelLoading] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -19,7 +31,7 @@ function App() {
       inferEngine
         .startWorker(
           "pokemon-cards-63wlp",
-          "5",
+          5,
           "rf_nbVhhBXmhvSSIMRD3uwoyx7ygxC2",
         )
         .then((id) => setModelWorkerId(id));
@@ -34,7 +46,7 @@ function App() {
   }, [modelWorkerId]);
 
   const startWebcam = () => {
-    var constraints = {
+    const constraints = {
       audio: false,
       video: {
         width: { ideal: 640 },
@@ -44,16 +56,21 @@ function App() {
     };
 
     navigator.mediaDevices.getUserMedia(constraints).then((stream) => {
+      if (!videoRef.current) return;
+
       videoRef.current.srcObject = stream;
       videoRef.current.onloadedmetadata = function () {
+        if (!videoRef.current) return;
+
         videoRef.current.play();
       };
 
       videoRef.current.onplay = () => {
-        var ctx = canvasRef.current.getContext("2d");
+        const ctx = canvasRef.current?.getContext("2d");
+        if (!videoRef.current || !canvasRef.current || !ctx) return;
 
-        var height = videoRef.current.videoHeight;
-        var width = videoRef.current.videoWidth;
+        const height = videoRef.current.videoHeight;
+        const width = videoRef.current.videoWidth;
 
         videoRef.current.width = width;
         videoRef.current.height = height;
@@ -70,34 +87,34 @@ function App() {
 
   const detectFrame = () => {
     if (!modelWorkerId) setTimeout(detectFrame, 100 / 3);
+    if (!videoRef.current || !canvasRef.current || !modelWorkerId) return;
 
     const img = new CVImage(videoRef.current);
-    inferEngine.infer(modelWorkerId, img).then((predictions) => {
-      if (predictions.confidence < 0.9) return;
+    inferEngine.infer(modelWorkerId, img).then((predictions: unknown) => {
+      const ctx = canvasRef.current?.getContext("2d");
+      if (!ctx || !canvasRef.current) return;
 
-      var ctx = canvasRef.current.getContext("2d");
       ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
 
-      for (var i = 0; i < predictions.length; i++) {
-        console.log(predictions[i]);
-        var prediction = predictions[i];
+      for (const prediction of predictions as Prediction[]) {
+        console.log(prediction);
 
         // draw detections
         ctx.strokeStyle = prediction.color;
 
-        var x = prediction.bbox.x - prediction.bbox.width / 2;
-        var y = prediction.bbox.y - prediction.bbox.height / 2;
-        var width = prediction.bbox.width;
-        var height = prediction.bbox.height;
+        const x = prediction.bbox.x - prediction.bbox.width / 2;
+        const y = prediction.bbox.y - prediction.bbox.height / 2;
+        const width = prediction.bbox.width;
+        const height = prediction.bbox.height;
 
         ctx.rect(x, y, width, height);
         ctx.fillStyle = "rgba(0, 0, 0, 0)";
         ctx.fill();
         ctx.fillStyle = ctx.strokeStyle;
-        ctx.lineWidth = "4";
+        ctx.lineWidth = 4;
         ctx.strokeRect(x, y, width, height);
 
-        var text = ctx.measureText(
+        const text = ctx.measureText(
           prediction.class +
             " " +
             Math.round(prediction.confidence * 100) +
