@@ -24,7 +24,7 @@ function App() {
   const inferEngine = useMemo(() => {
     return new InferenceEngine();
   }, []);
-  const [matchedCard, setMatchedCard] = useState<any>(null);
+  const [matchedCard, setMatchedCard] = useState<{ id: string } | null>(null);
   const [modelWorkerId, setModelWorkerId] = useState("");
   const [modelLoading, setModelLoading] = useState(false);
 
