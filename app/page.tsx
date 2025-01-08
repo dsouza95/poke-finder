@@ -24,6 +24,7 @@ function App() {
   const inferEngine = useMemo(() => {
     return new InferenceEngine();
   }, []);
+  const [matchedCard, setMatchedCard] = useState<any>(null);
   const [modelWorkerId, setModelWorkerId] = useState("");
   const [modelLoading, setModelLoading] = useState(false);
 
@@ -60,7 +61,7 @@ function App() {
       body: formData,
     });
     const match = await response.json();
-    console.log("match", match);
+    return match;
   };
 
   const startWebcam = () => {
@@ -142,7 +143,7 @@ function App() {
           const buffer = frame.toBuffer();
           const mimeType = frame.getMimeType();
 
-          await findMatch(buffer!, mimeType!);
+          setMatchedCard(await findMatch(buffer!, mimeType!));
           checkingMatch = false;
         }
 
@@ -214,6 +215,7 @@ function App() {
         ref={canvasRef3}
         style={{ position: "absolute", top: 0, right: 0 }}
       />
+      <h1>Detected card id: {matchedCard?.id}</h1>
     </div>
   );
 }
