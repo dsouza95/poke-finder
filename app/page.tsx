@@ -1,7 +1,12 @@
 "use client";
 
-import { InferenceEngine, CVImage } from "inferencejs";
-import { useEffect, useRef, useState, useMemo } from "react";
+import * as tf from "@tensorflow/tfjs";
+import Frame from "canvas-to-buffer";
+import { CVImage, InferenceEngine } from "inferencejs";
+import { useEffect, useMemo, useRef, useState } from "react";
+
+let snapshot: CVImage | null = null;
+let checkingMatch = false;
 
 type Prediction = {
   confidence: number;
@@ -24,26 +29,38 @@ function App() {
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const canvasRef2 = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     if (!modelLoading) {
       setModelLoading(true);
       inferEngine
-        .startWorker(
-          "pokemon-cards-63wlp",
-          5,
-          "rf_nbVhhBXmhvSSIMRD3uwoyx7ygxC2",
-        )
+        .startWorker("pokemon_card", 1, "rf_nbVhhBXmhvSSIMRD3uwoyx7ygxC2")
         .then((id) => setModelWorkerId(id));
     }
   }, [inferEngine, modelLoading]);
 
   useEffect(() => {
-    console.log("Model Worker ID: " + modelWorkerId);
     if (modelWorkerId) {
       startWebcam();
     }
   }, [modelWorkerId]);
+
+  const findMatch = async (imageBuffer: Buffer, mimeType: string) => {
+    const formData = new FormData();
+    formData.append(
+      "image",
+      new Blob([imageBuffer], { type: mimeType }),
+      "image.webp",
+    );
+
+    const response = await fetch("/cards/image-search", {
+      method: "POST",
+      body: formData,
+    });
+    const match = await response.json();
+    console.log("match", match);
+  };
 
   const startWebcam = () => {
     const constraints = {
@@ -85,19 +102,30 @@ function App() {
     });
   };
 
-  const detectFrame = () => {
+  const detectFrame = async () => {
     if (!modelWorkerId) setTimeout(detectFrame, 100 / 3);
     if (!videoRef.current || !canvasRef.current || !modelWorkerId) return;
 
     const img = new CVImage(videoRef.current);
-    inferEngine.infer(modelWorkerId, img).then((predictions: unknown) => {
+    inferEngine.infer(modelWorkerId, img).then(async (predictions: unknown) => {
       const ctx = canvasRef.current?.getContext("2d");
       if (!ctx || !canvasRef.current) return;
 
       ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
 
       for (const prediction of predictions as Prediction[]) {
-        console.log(prediction);
+        if (!checkingMatch && prediction.confidence > 0.9) {
+          snapshot = new CVImage(videoRef.current!);
+          checkingMatch = true;
+          await tf.browser.toPixels(snapshot.tensor(), canvasRef2.current!);
+
+          const frame = new Frame(canvasRef2.current!);
+          const buffer = frame.toBuffer();
+          const mimeType = frame.getMimeType();
+
+          await findMatch(buffer!, mimeType!);
+          checkingMatch = false;
+        }
 
         // draw detections
         ctx.strokeStyle = prediction.color;
@@ -138,7 +166,7 @@ function App() {
     });
   };
   return (
-    <div>
+    <div className="flex h-full flex-col items-center justify-center">
       <div style={{ position: "relative" }}>
         <video
           id="video"
@@ -155,6 +183,13 @@ function App() {
           style={{ position: "absolute", top: 0, left: 0 }}
         />
       </div>
+      <canvas
+        id="canvas2"
+        width="640"
+        height="480"
+        ref={canvasRef2}
+        style={{ position: "absolute", top: 0, left: 0 }}
+      />
     </div>
   );
 }
