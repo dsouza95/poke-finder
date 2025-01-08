@@ -30,6 +30,7 @@ function App() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const canvasRef2 = useRef<HTMLCanvasElement>(null);
+  const canvasRef3 = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     if (!modelLoading) {
@@ -119,7 +120,25 @@ function App() {
           checkingMatch = true;
           await tf.browser.toPixels(snapshot.tensor(), canvasRef2.current!);
 
-          const frame = new Frame(canvasRef2.current!);
+          const context = canvasRef3.current?.getContext("2d");
+          if (!context) return;
+
+          canvasRef3.current!.width = prediction.bbox.width;
+          canvasRef3.current!.height = prediction.bbox.height;
+
+          context.drawImage(
+            canvasRef2.current!,
+            prediction.bbox.x - prediction.bbox.width / 2,
+            prediction.bbox.y - prediction.bbox.height / 2,
+            prediction.bbox.width,
+            prediction.bbox.height,
+            0,
+            0,
+            prediction.bbox.width,
+            prediction.bbox.height,
+          );
+
+          const frame = new Frame(canvasRef3.current!);
           const buffer = frame.toBuffer();
           const mimeType = frame.getMimeType();
 
@@ -189,6 +208,11 @@ function App() {
         height="480"
         ref={canvasRef2}
         style={{ position: "absolute", top: 0, left: 0 }}
+      />
+      <canvas
+        id="canvas3"
+        ref={canvasRef3}
+        style={{ position: "absolute", top: 0, right: 0 }}
       />
     </div>
   );
