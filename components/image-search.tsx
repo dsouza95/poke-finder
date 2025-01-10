@@ -5,6 +5,13 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import FilePicker from "./file-picker";
 
+interface BBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export default function ImageSearch() {
   const [detector, setDetector] = useState<[InferenceEngine, string] | null>(
     null,
@@ -16,16 +23,16 @@ export default function ImageSearch() {
 
   useEffect(() => {
     if (!worker.current) {
-      // Create the worker if it does not yet exist.
+      // Create the worker and detector if they do not yet exist.
       worker.current = new Worker(new URL("./worker.js", import.meta.url), {
         type: "module",
       });
 
-      const engine = new InferenceEngine();
-      engine
+      const detectorEngine = new InferenceEngine();
+      detectorEngine
         .startWorker("pokemon_card", 1, "rf_nbVhhBXmhvSSIMRD3uwoyx7ygxC2")
         .then((workerId) => {
-          setDetector([engine, workerId]);
+          setDetector([detectorEngine, workerId]);
         });
     }
 
@@ -61,40 +68,59 @@ export default function ImageSearch() {
       worker.current?.removeEventListener("message", onMessageReceived);
   }, [router]);
 
-  const extractFeatures = useCallback(
-    (file: File) => {
-      const imageElement = document.createElement("img");
-
+  const fileToImageElement = async (file: File): Promise<HTMLImageElement> => {
+    return new Promise((resolve) => {
       const reader = new FileReader();
+
       reader.onload = (event) => {
-        imageElement.onload = async () => {
-          const image = new CVImage(imageElement);
-          const [engine, workerId] = detector!;
-          const { bbox } = (await engine.infer(workerId, image))[0] as any;
-
-          const canvas = document.createElement("canvas");
-          const context = canvas.getContext("2d");
-
-          canvas.width = bbox.width;
-          canvas.height = bbox.height;
-
-          context!.drawImage(
-            imageElement,
-            bbox.x - bbox.width / 2,
-            bbox.y - bbox.height / 2,
-            bbox.width,
-            bbox.height,
-            0,
-            0,
-            bbox.width,
-            bbox.height,
-          );
-
-          worker.current!.postMessage({ uri: canvas.toDataURL() });
-        };
+        const imageElement = document.createElement("img");
+        imageElement.onload = () => resolve(imageElement);
         imageElement.src = event.target?.result as string;
       };
       reader.readAsDataURL(file);
+    });
+  };
+
+  const canvasFromBBox = (imageElement: HTMLImageElement, bbox: BBox) => {
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
+
+    canvas.width = bbox.width;
+    canvas.height = bbox.height;
+
+    context!.drawImage(
+      imageElement,
+      bbox.x - bbox.width / 2,
+      bbox.y - bbox.height / 2,
+      bbox.width,
+      bbox.height,
+      0,
+      0,
+      bbox.width,
+      bbox.height,
+    );
+
+    return canvas;
+  };
+
+  const extractFeatures = useCallback(
+    async (file: File) => {
+      const imageElement = await fileToImageElement(file);
+
+      // Before getting the features, we need to crop the image to the card
+      const image = new CVImage(imageElement);
+      const [engine, workerId] = detector!;
+
+      // Dirty little hack since the inferencejs types are not correct
+      const { bbox } = (await engine.infer(workerId, image))[0] as unknown as {
+        bbox: BBox;
+      };
+
+      // Get the cropped card canvas
+      const croppedCardCanvas = canvasFromBBox(imageElement, bbox);
+
+      // Send the cropped card canvas to the worker for feature extraction
+      worker.current!.postMessage({ uri: croppedCardCanvas.toDataURL() });
     },
     [detector],
   );
