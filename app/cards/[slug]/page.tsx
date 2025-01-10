@@ -100,7 +100,7 @@ export default async function Home({
         </div>
 
         {/* Card rules */}
-        {getCardRulesToDisplay(card).map((rule) => (
+        {getCardRulesToDisplay(card)?.map((rule) => (
           <blockquote className="text-center sm:text-left" key={rule}>
             <p className="max-w-xl text-xs text-muted-foreground">
               &quot;{rule}&quot;
