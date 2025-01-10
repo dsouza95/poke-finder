@@ -1,27 +1,35 @@
-import phash from "sharp-phash";
-import database from "@/database.json";
-import hammingDistance from "hamming-distance";
+import dbClient from "@/lib/database";
 
-const getClosestCard = async (hash: string) => {
-  const distances = database.map((card) => {
-    return {
-      ...card,
-      distance: hammingDistance(hash, card.hash),
-    };
-  });
+const findNearestNeighbor = async (embeddings: number[]) => {
+  const cards = dbClient.db("pokemon").collection("cards");
+  const searchResults = await cards
+    .aggregate([
+      {
+        $vectorSearch: {
+          index: "vector_index",
+          path: "embeddings",
+          queryVector: embeddings,
+          numCandidates: 20,
+          limit: 1,
+        },
+      },
+    ])
+    .toArray();
 
-  distances.sort((a, b) => a.distance - b.distance);
-  return distances[0];
+  const { cardId } = searchResults?.[0] ?? {};
+  return cardId;
 };
 
 export async function POST(req: Request) {
-  const formData = await req.formData();
-  const imageFile = formData.get("image") as File;
-  const imageBuffer = await imageFile.arrayBuffer();
+  let nearestCardId;
 
-  const hash = await phash(imageBuffer);
+  try {
+    await dbClient.connect();
+    const { embeddings } = await req.json();
+    nearestCardId = await findNearestNeighbor(Object.values(embeddings));
+  } finally {
+    await dbClient.close();
+  }
 
-  const closestCard = await getClosestCard(hash);
-
-  return new Response(JSON.stringify(closestCard));
+  return new Response(JSON.stringify({ id: nearestCardId }));
 }
