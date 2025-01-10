@@ -2,13 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import FilePicker from "./file-picker";
+import { useRouter } from "next/navigation";
 
 export default function ImageSearch() {
-  // Keep track of the feature extraction result and the model loading status.
-  const [result, setResult] = useState<unknown>(null);
   const [ready, setReady] = useState<boolean | null>(null);
-
-  // Create a reference to the worker object.
+  const router = useRouter();
   const worker = useRef<Worker | null>(null);
 
   useEffect(() => {
@@ -34,8 +32,7 @@ export default function ImageSearch() {
             body: JSON.stringify({ embeddings: event.data.output }),
           });
           const match = await response.json();
-          console.log("match", match);
-          setResult(event.data.output);
+          if (match.id) router.push(`/cards/${match.id}`);
           break;
         }
       }
@@ -63,21 +60,15 @@ export default function ImageSearch() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-12">
-      <h1 className="mb-2 text-center text-5xl font-bold">Transformers.js</h1>
-      <h2 className="mb-4 text-center text-2xl">
-        Next.js template (client-side)
+      <h1 className="mb-2 text-center text-5xl font-bold">Poké-finder.js</h1>
+      <h2 className="mb-4 text-center text-xl">
+        Upload an image of a Pokémon card to find prices and other details.
       </h2>
 
       <FilePicker
         disabled={!ready}
         onChange={(file) => extractFeatures(file)}
       />
-
-      {ready !== null && (
-        <pre className="rounded bg-gray-100 p-2">
-          {!ready || !result ? "Loading..." : JSON.stringify(result, null, 2)}
-        </pre>
-      )}
     </main>
   );
 }
