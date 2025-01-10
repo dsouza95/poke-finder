@@ -17,10 +17,11 @@ export default function FilePicker({
   return (
     <div>
       <input
-        type="file"
         accept="image/*"
+        capture="environment"
         disabled={disabled}
         onChange={handleChange}
+        type="file"
       />
     </div>
   );

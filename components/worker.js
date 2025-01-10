@@ -24,9 +24,9 @@ self.addEventListener("message", async (event) => {
     self.postMessage(x);
   });
 
-  if (!event.data.file) return;
+  if (!event.data.uri) return;
 
-  const output = await featureExtractor(event.data.file);
+  const output = await featureExtractor(event.data.uri);
 
   self.postMessage({
     status: "complete",
