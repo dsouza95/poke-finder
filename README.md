@@ -4,7 +4,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/dsouza95/poke-finder">
-    <img src="https://poke-library-zeta.vercel.app/pokeball.svg" alt="Logo" width="80" height="80">
+    <img src="https://pokemon-card-ai.vercel.app/pokeball.svg" alt="Logo" width="80" height="80">
   </a>
 
   <h3 align="center">Poké Finder</h3>
@@ -13,7 +13,7 @@
     Search for Pokémon cards by image using AI
     <br />
     <br />
-    <a href="https://poke-library-zeta.vercel.app">View Demo</a>
+    <a href="https://pokemon-card-ai.vercel.app">View Demo</a>
   </p>
 </div>
 

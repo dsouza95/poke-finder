@@ -10,7 +10,7 @@ const Navbar = () => {
     <Card className="m-5 flex items-center justify-between gap-6 rounded-2xl border-0 bg-card px-4 py-3 shadow-indigo-500/40">
       <Link href="/" className="flex items-center gap-2">
         <Image src="/pokeball.svg" alt="pokemon" height={24} width={24} />
-        <span className="text-lg font-bold">Poké Library</span>
+        <span className="text-lg font-bold">Poké Finder</span>
       </Link>
       <div className="flex items-center">
         <ThemeToggle />
