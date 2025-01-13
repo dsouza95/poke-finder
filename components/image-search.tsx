@@ -5,6 +5,7 @@ import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import SquareLoader from "react-spinners/SquareLoader";
+import { toast } from "sonner";
 import Dropzone from "./dropzone";
 
 interface BBox {
@@ -57,12 +58,20 @@ export default function ImageSearch() {
           break;
         case "complete": {
           setLoadingResults(true);
+
           const response = await fetch("/cards/image-search", {
             method: "POST",
             body: JSON.stringify({ embeddings: event.data.output }),
           });
+
           const match = await response.json();
-          if (match.id) router.push(`/cards/${match.id}`);
+          if (match.id) {
+            router.push(`/cards/${match.id}`);
+          } else {
+            toast.error(
+              "No Pokémon card found in the image, check if your photo is clear and in good lighting.",
+            );
+          }
           break;
         }
       }
@@ -122,11 +131,20 @@ export default function ImageSearch() {
       const [engine, workerId] = detector!;
 
       // Dirty little hack since the inferencejs types are not correct
-      const { bbox } = (await engine.infer(workerId, image))[0] as unknown as {
-        bbox: BBox;
-      };
+      const results = (await engine.infer(workerId, image))[0] as unknown as
+        | {
+            bbox: BBox;
+          }
+        | undefined;
+      if (!results) {
+        toast.error(
+          "No Pokémon card found in the image, check if your photo is clear and in good lighting.",
+        );
+        return;
+      }
 
       // Get the cropped card canvas
+      const { bbox } = results;
       const croppedCardCanvas = canvasFromBBox(imageElement, bbox);
 
       // Send the cropped card canvas to the worker for feature extraction
