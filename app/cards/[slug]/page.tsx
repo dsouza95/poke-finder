@@ -73,14 +73,14 @@ export default async function Home({
           src={card.images.large}
           width={224}
           height={224}
-          className="my-5 self-center sm:hidden"
+          className="my-5 self-center rounded sm:hidden"
         />
         <Image
           alt={card.name}
           src={card.images.large}
           width={320}
           height={320}
-          className="my-5 hidden self-center sm:block"
+          className="my-5 hidden self-center rounded sm:block"
         />
       </div>
 
