@@ -4,13 +4,7 @@ import { useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { toast } from "sonner";
 
-const Dropzone = ({
-  disabled,
-  onDrop,
-}: {
-  disabled: boolean;
-  onDrop: (files: File[]) => void;
-}) => {
+const Dropzone = ({ onDrop }: { onDrop: (files: File[]) => void }) => {
   const [isDragging, setIsDragging] = useState(false);
 
   const onDropRejected = () => {
@@ -30,7 +24,6 @@ const Dropzone = ({
         ".webp",
       ],
     },
-    disabled: disabled,
     maxFiles: 1,
     multiple: false,
     onDrop: () => setIsDragging(false),
@@ -48,7 +41,7 @@ const Dropzone = ({
     >
       <div
         {...getRootProps({
-          className: `dropzone ${disabled ? "opacity-50 bg-gray-200" : ""}`,
+          className: "dropzone",
         })}
       >
         <input {...getInputProps()} />

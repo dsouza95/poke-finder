@@ -1,8 +1,10 @@
 "use client";
 
 import { CVImage, InferenceEngine } from "inferencejs";
+import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import SquareLoader from "react-spinners/SquareLoader";
 import Dropzone from "./dropzone";
 
 interface BBox {
@@ -18,10 +20,18 @@ export default function ImageSearch() {
   );
   const [featureExtractorReady, setFeatureExtractorReady] =
     useState<boolean>(false);
+  const [mounted, setMounted] = useState<boolean>(false);
+  const [loadingResults, setLoadingResults] = useState<boolean>(false);
+  const ready = useMemo(
+    () => featureExtractorReady && detector,
+    [featureExtractorReady, detector],
+  );
   const router = useRouter();
+  const { theme } = useTheme();
   const worker = useRef<Worker | null>(null);
 
   useEffect(() => {
+    setMounted(true);
     if (!worker.current) {
       // Create the worker and detector if they do not yet exist.
       worker.current = new Worker(new URL("./worker.js", import.meta.url), {
@@ -46,6 +56,7 @@ export default function ImageSearch() {
           setFeatureExtractorReady(true);
           break;
         case "complete": {
+          setLoadingResults(true);
           const response = await fetch("/cards/image-search", {
             method: "POST",
             body: JSON.stringify({ embeddings: event.data.output }),
@@ -124,10 +135,22 @@ export default function ImageSearch() {
     [detector],
   );
 
-  return (
-    <Dropzone
-      disabled={!featureExtractorReady || !detector}
-      onDrop={(files) => extractFeatures(files[0])}
-    />
-  );
+  const getLoadingComponent = (text: string) => {
+    return (
+      <div className="flex flex-col items-center justify-center p-6">
+        <SquareLoader size={48} color={theme === "dark" ? "#fff" : "#000"} />
+        <p className="mt-4 text-lg font-medium">{text}</p>
+      </div>
+    );
+  };
+
+  const getComponent = () => {
+    if (!mounted) return null;
+    if (!ready) return getLoadingComponent("Loading AI models...");
+    if (loadingResults) return getLoadingComponent("Catching Pokémon...");
+
+    return <Dropzone onDrop={(files) => extractFeatures(files[0])} />;
+  };
+
+  return getComponent();
 }
