@@ -1,5 +1,6 @@
-import Navbar from "@/components/nav-main";
+import Navbar from "@/components/navbar";
 import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "@/components/ui/sonner";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata } from "next";
@@ -41,6 +42,8 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <Navbar />
+          <Toaster />
+
           {children}
         </ThemeProvider>
       </body>

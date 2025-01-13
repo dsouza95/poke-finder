@@ -3,7 +3,7 @@
 import { CVImage, InferenceEngine } from "inferencejs";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import FilePicker from "./file-picker";
+import Dropzone from "./dropzone";
 
 interface BBox {
   x: number;
@@ -46,7 +46,6 @@ export default function ImageSearch() {
           setFeatureExtractorReady(true);
           break;
         case "complete": {
-          console.log("complete", event.data.output);
           const response = await fetch("/cards/image-search", {
             method: "POST",
             body: JSON.stringify({ embeddings: event.data.output }),
@@ -126,16 +125,9 @@ export default function ImageSearch() {
   );
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-12">
-      <h1 className="mb-2 text-center text-5xl font-bold">Poké-finder.js</h1>
-      <h2 className="mb-4 text-center text-xl">
-        Upload an image of a Pokémon card to find prices and other details.
-      </h2>
-
-      <FilePicker
-        disabled={!featureExtractorReady || !detector}
-        onChange={(file) => extractFeatures(file)}
-      />
-    </main>
+    <Dropzone
+      disabled={!featureExtractorReady || !detector}
+      onDrop={(files) => extractFeatures(files[0])}
+    />
   );
 }
