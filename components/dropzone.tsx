@@ -44,9 +44,14 @@ const Dropzone = ({ onDrop }: { onDrop: (files: File[]) => void }) => {
           className: "dropzone",
         })}
       >
-        <input {...getInputProps()} />
-        <p className="px-12 py-24 text-center sm:px-36 sm:py-12">
-          Drag and drop or click to select an image.
+        <input {...getInputProps()} capture="environment" />
+
+        <p className="px-12 py-24 text-center sm:hidden">
+          Click here to take a photo of your Pokémon card.
+        </p>
+
+        <p className="hidden px-36 py-12 text-center sm:flex">
+          Drag and drop or click here to select an image of your Pokémon card.
         </p>
       </div>
     </div>
